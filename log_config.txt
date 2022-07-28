@@ -1,0 +1,52 @@
+input {
+    file {
+        path => "/root/tt/sales.csv"
+        start_position => "beginning"
+        sincedb_path => "/dev/null"
+    }
+}
+filter {
+    csv {
+        separator => ","
+        columns  => ["UNIT","AC-YEAR","YEAR","MONTH","YM","DEP","STORE","BRAND","SEASON","TYPE","QUALITY","SALES(K)","COST(K)","PRICE(K)","MARGIN(K)","ORIGEN","Latitude","Longitude"]
+    }
+
+    date {
+        match => ["YM","MM月-yy","yyyy-MM"]
+        target => ["@timestamp"]
+    }
+
+    mutate {
+        convert => { "QUALITY" => "integer" }
+        convert => { "SALES(K)" => "float" }
+        convert => { "COST(K)" => "float" }
+        convert => { "PRICE(K)" => "float" }
+        convert => { "MARGIN(K)" => "float" }
+        convert => { "Latitude" => "float" }
+        convert => { "Longitude" => "float" }
+         }
+
+}
+
+filter{
+    mutate {
+      add_field => {
+        "[location]" => ""
+      }
+    }
+        ruby{
+                code => '
+                        event.set("[location]", [event.get("Latitude"), event.get("Longitude")])
+                '
+        }
+
+}
+
+output {
+  elasticsearch {
+        hosts => ["localhost:9200"]
+        index => "test88"
+  }
+}
+
+
